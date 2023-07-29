@@ -1,4 +1,8 @@
+import 'dart:html';
+
 import 'package:flutter/material.dart';
+import 'package:quizzler/quiz_Manager.dart';
+import 'package:rflutter_alert/rflutter_alert.dart';
 
 void main() {
   runApp(Quizzler());
@@ -30,21 +34,32 @@ class QuizPage extends StatefulWidget {
   State<QuizPage> createState() => _QuizPageState();
 }
 
+QuizManager quizmanager = QuizManager();
+
 class _QuizPageState extends State<QuizPage> {
   List<Icon> scoreKeeper = [];
 
-  void AddScore(bool isCorrectAnswer) {
-    if (!isCorrectAnswer) {
-      scoreKeeper.add(Icon(
-        Icons.close,
-        color: Colors.red,
-      ));
-    } else {
-      scoreKeeper.add(Icon(
-        Icons.check,
-        color: Colors.green,
-      ));
-    }
+  void AddScore(bool buttonClicked) {
+    bool answer =
+        quizmanager.getQuestionAnswer() == buttonClicked ? true : false;
+    final icon = Icon(answer ? Icons.check : Icons.close,
+        color: answer ? Colors.green : Colors.red);
+
+    if (answer)
+      quizmanager.correctAnswers++;
+    else
+      quizmanager.wrongAnswers++;
+
+    quizmanager.percentage = (quizmanager.correctAnswers /
+            (quizmanager.correctAnswers + quizmanager.wrongAnswers)) *
+        100;
+    setState(() {
+      if (!quizmanager.isFinsihed) {
+        scoreKeeper.add(icon);
+        quizmanager.nextQuestion();
+      } else
+        showFinishAlert();
+    });
   }
 
   @override
@@ -59,8 +74,9 @@ class _QuizPageState extends State<QuizPage> {
             padding: const EdgeInsets.all(20.0),
             child: Center(
               child: Text(
-                "Question Question Question Question Question Question ",
+                quizmanager.getQuestionText(),
                 style: TextStyle(color: Colors.white, fontSize: 25),
+                textDirection: TextDirection.rtl,
               ),
             ),
           ),
@@ -69,11 +85,10 @@ class _QuizPageState extends State<QuizPage> {
           child: Padding(
             padding: const EdgeInsets.all(15.0),
             child: TextButton(
-              child: Text("Yes", style: TextStyle(color: Colors.white)),
+              child: Text("صحيح",
+                  style: TextStyle(color: Colors.white, fontSize: 15)),
               onPressed: () {
-                setState(() {
-                  AddScore(true);
-                });
+                AddScore(true);
               },
               style: ButtonStyle(
                   backgroundColor:
@@ -86,13 +101,11 @@ class _QuizPageState extends State<QuizPage> {
             padding: const EdgeInsets.all(15.0),
             child: TextButton(
               child: Text(
-                "No",
-                style: TextStyle(color: Colors.white),
+                "غير صحيح",
+                style: TextStyle(color: Colors.white, fontSize: 15),
               ),
               onPressed: () {
-                setState(() {
-                  AddScore(false);
-                });
+                AddScore(false);
               },
               style: ButtonStyle(
                   backgroundColor:
@@ -105,5 +118,31 @@ class _QuizPageState extends State<QuizPage> {
         )
       ],
     );
+  }
+
+  void showFinishAlert() {
+    Alert(
+      context: context,
+      title: 'انتهت الأسئلة',
+      desc: 'لقد قمت بالإجابة عن جميع الأسئلة',
+      content: Column(
+        children: [
+          Text('إجاباتك الصحيحة : ${quizmanager.correctAnswers}'),
+          Text('إجاباتك الخاطئة: ${quizmanager.wrongAnswers}'),
+          Text('نسبة الإجابات الصحيحة : ${quizmanager.percentage.toStringAsFixed(0)}%'),
+        ],
+      ),
+      buttons: [
+        DialogButton(
+          child: Text(
+            'حسنًا',
+            style: TextStyle(color: Colors.white, fontSize: 20),
+          ),
+          onPressed: () => Navigator.pop(context),
+          width: 120,
+          color: Colors.blue,
+        ),
+      ],
+    ).show();
   }
 }
